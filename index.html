@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gym Tracker Pro</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --accent: #38bdf8;
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            line-height: 1.5;
+        }
+        header {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary), #1e40af);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        h1 { margin: 0; font-size: 1.5rem; }
+        .section-title {
+            font-size: 1.1rem;
+            margin: 20px 0 10px;
+            color: var(--accent);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border: 1px solid #334155;
+        }
+        /* טיימר הליכון */
+        .timer-display {
+            font-size: 2.5rem;
+            font-family: monospace;
+            text-align: center;
+            margin: 10px 0;
+            color: var(--accent);
+        }
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn-start { background: var(--success); color: white; }
+        .btn-stop { background: var(--danger); color: white; }
+
+        /* טבלת סטים */
+        .exercise-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .sets-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .set-btn {
+            background: #334155;
+            border: 2px solid transparent;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .set-btn.active {
+            background: var(--success);
+            border-color: #bef264;
+        }
+        .reset-all {
+            margin-top: 30px;
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>האימון שלי 💪</h1>
+</header>
+
+<div class="section-title">🏃 חימום: 5 דק' הליכון</div>
+<div class="card">
+    <div id="timer1-display" class="timer-display">05:00</div>
+    <div class="timer-controls">
+        <button class="btn btn-start" onclick="toggleTimer(300, 'timer1-display', this)">הפעל</button>
+        <button class="btn btn-stop" onclick="resetTimer(300, 'timer1-display')">איפוס</button>
+    </div>
+</div>
+
+<div class="section-title">🏋️ תרגילי כוח</div>
+<div id="exercises-list"></div>
+
+<div class="section-title">🚴 אירובי: 20 דק' הליכון</div>
+<div class="card">
+    <div id="timer2-display" class="timer-display">20:00</div>
+    <div class="timer-controls">
+        <button class="btn btn-start" onclick="toggleTimer(1200, 'timer2-display', this)">הפעל</button>
+        <button class="btn btn-stop" onclick="resetTimer(1200, 'timer2-display')">איפוס</button>
+    </div>
+</div>
+
+<button class="reset-all" onclick="location.reload()">איפוס כל האימון</button>
+
+<script>
+    const exercises = [
+        { n: "לחיצת רגליים", s: 3, r: 12 },
+        { n: "פשיטת ברכיים", s: 3, r: 12 },
+        { n: "פרפר חזה", s: 3, r: 12 },
+        { n: "משיכת פולי עליון", s: 3, r: 12 },
+        { n: "חתירה בישיבה", s: 3, r: 12 },
+        { n: "הרחקת זרועות", s: 3, r: 10 },
+        { n: "Face Pull", s: 3, r: 12 },
+        { n: "כפיפת מרפקים", s: 3, r: 10 },
+        { n: "פשיטת מרפקים", s: 3, r: 10 }
+    ];
+
+    const list = document.getElementById('exercises-list');
+    exercises.forEach(ex => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        let setsButtons = '';
+        for(let i=1; i<=ex.s; i++) {
+            setsButtons += `<div class="set-btn" onclick="this.classList.toggle('active')">סט ${i}</div>`;
+        }
+        div.innerHTML = `
+            <div class="exercise-header">
+                <strong>${ex.n}</strong>
+                <span>${ex.s}x${ex.r}</span>
+            </div>
+            <div class="sets-grid">${setsButtons}</div>
+        `;
+        list.appendChild(div);
+    });
+
+    // לוגיקת טיימר
+    let intervals = {};
+    function toggleTimer(duration, displayId, btn) {
+        if (intervals[displayId]) {
+            clearInterval(intervals[displayId]);
+            delete intervals[displayId];
+            btn.innerText = "המשך";
+            btn.style.background = "var(--success)";
+        } else {
+            btn.innerText = "עצור";
+            btn.style.background = "var(--danger)";
+            let timer = parseTime(document.getElementById(displayId).innerText);
+            
+            intervals[displayId] = setInterval(() => {
+                if (--timer < 0) {
+                    clearInterval(intervals[displayId]);
+                    alert("הזמן נגמר!");
+                    return;
+                }
+                updateDisplay(displayId, timer);
+            }, 1000);
+        }
+    }
+
+    function resetTimer(seconds, displayId) {
+        clearInterval(intervals[displayId]);
+        delete intervals[displayId];
+        updateDisplay(displayId, seconds);
+        // מציאת כפתור ההפעלה המתאים ואיפוס הטקסט שלו
+        const btns = document.getElementById(displayId).nextElementSibling.querySelectorAll('.btn-start');
+        btns.forEach(b => b.innerText = "הפעל");
+    }
+
+    function updateDisplay(id, seconds) {
+        let mins = Math.floor(seconds / 60);
+        let secs = seconds % 60;
+        document.getElementById(id).innerText = 
+            `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function parseTime(str) {
+        let parts = str.split(':');
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    }
+</script>
+
+</body>
+</html>
